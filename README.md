@@ -2,6 +2,25 @@
 
 Prometheus exporter for DSMR P1 smart meter telegrams. Reads complete DSMR 5.0 telegram frames from a serial device and exposes energy metrics on `:9100`.
 
+## Architecture
+
+```
+P1 serial cable ──> serial_reader.py ──> parser.py ──> metrics.py ──> /metrics (Prometheus)
+ (/dev/ttyUSB0)      (reads telegram        (OBIS code        (Gauges/Counters)
+                      frames, "/".."!")      -> field)
+```
+
+- `exporter/serial_reader.py` opens the serial port and yields complete raw telegram frames.
+- `exporter/parser.py` turns a raw telegram into a `DSMRTelegram` dataclass, keyed off an OBIS code map.
+- `exporter/metrics.py` maps parsed fields onto Prometheus Gauges/Counters and runs the poll loop.
+- `exporter/config.py` reads all settings from environment variables (see [Configuration](#configuration)).
+
+Deployed as a single-replica Kubernetes Deployment pinned to `k8s-master01` (where the USB P1 cable
+is attached) in the `homelabs` repo, under `infra/home-exporters/dsmr-p1-prometheus-exporter/`.
+
+For deployment details, current security posture, and known hardening TODOs, see
+[docs/DESIGN.md](docs/DESIGN.md).
+
 ## Quick start
 
 ```bash
@@ -66,10 +85,11 @@ python -m compileall exporter
 
 - **Meter**: Kaifa DSMR 5.0
 - **Cable**: P1 USB cable on `k8s-master01`
-- **Stable path**: Use `/dev/serial/by-id/...` instead of `/dev/ttyUSB0`
+- **Stable path (TODO)**: currently deployed against `/dev/ttyUSB0`; switching to
+  `/dev/serial/by-id/...` is a planned hardening step — see [docs/DESIGN.md](docs/DESIGN.md).
 
 ## Deployment
 
 Container image is built and pushed to GHCR on every push to `main` or tag. Kubernetes manifests live in the `homelabs` repository under `infra/home-exporters/dsmr-p1-prometheus-exporter/`.
 
-See [DESIGN.md](DESIGN.md) for architecture details.
+See [docs/DESIGN.md](docs/DESIGN.md) for architecture details, current security posture, and hardening TODOs.
