@@ -76,6 +76,14 @@ docker run --rm --device=/dev/ttyUSB0:/dev/ttyUSB0 -p 9100:9100 dsmr-p1-exporter
 ## Testing
 
 ```bash
+make install-dev
+make test       # pytest tests/ -v
+make coverage   # pytest with coverage report
+```
+
+Or directly with pytest:
+
+```bash
 pip install pytest
 pytest tests/ -v
 python -m compileall exporter
